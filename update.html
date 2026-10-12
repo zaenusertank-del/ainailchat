@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NaxaChat AI Voice - Gratis</title>
+    <title>NaxaChat Voice AI (Free)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -36,7 +36,7 @@
             flex-direction: column;
             gap: 8px;
         }
-        input[type="password"], input[type="text"] {
+        input[type="password"] {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -96,15 +96,15 @@
 <body>
 
 <div class="chat-card">
-    <h2>NaxaChat Voice AI (Free)</h2>
-    <p class="sub">AI Suara Luwes Tanpa Saldo/Kredit Berbayar</p>
+    <h2>NaxaChat Voice AI</h2>
+    <p class="sub">AI Suara Gaul & Gratis</p>
 
     <div class="api-box">
         <input type="password" id="groqKey" placeholder="Tempel Groq API Key (gsk_...)" />
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="msg ai">Halo bro! Klik tombol mic di bawah terus ngomong aja, ntar tak bales pake suara!</div>
+        <div class="msg ai">Halo bro! Masukin API Key Groq di atas, terus pencet mic buat ngobrol!</div>
     </div>
 
     <div class="status" id="statusText">Status: Siap ngobrol</div>
@@ -118,7 +118,6 @@
     const chatBox = document.getElementById('chatBox');
     const groqKeyInput = document.getElementById('groqKey');
 
-    // Load key kalau tersimpan
     groqKeyInput.value = localStorage.getItem('groq_key') || '';
     groqKeyInput.addEventListener('change', () => {
         localStorage.setItem('groq_key', groqKeyInput.value.trim());
@@ -127,14 +126,13 @@
     let recognition;
     let isRecording = false;
 
-    // Cek fitur Speech Recognition di browser (Web Speech API gratisan)
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-        alert("Browser kamu gak mendukung perekam suara bawaan. Pake Chrome HP/Laptop ya!");
+        alert("Browser kamu tidak mendukung perekam suara. Gunakan Google Chrome di HP/Laptop!");
     } else {
         recognition = new SpeechRecognition();
-        recognition.lang = 'id-ID'; // Bahasa Indonesia
+        recognition.lang = 'id-ID';
         recognition.continuous = false;
         recognition.interimResults = false;
 
@@ -167,7 +165,7 @@
     micBtn.addEventListener('click', () => {
         const apiKey = groqKeyInput.value.trim();
         if (!apiKey) {
-            alert("Isi Groq API Key dulu bro! (Dapat gratis dari console.groq.com)");
+            alert("Isi Groq API Key dulu bro! (Ambil gratis di console.groq.com)");
             return;
         }
 
@@ -192,7 +190,6 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Olah Teks ke AI Groq (Model Llama 3 - Cepat & Gaul)
     async function processAI(userText) {
         const apiKey = groqKeyInput.value.trim();
 
@@ -204,11 +201,11 @@
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile", // Model AI super pinter & gratis
+                    model: "llama-3.1-8b-instant", // Model aktif yang super cepat & gratis
                     messages: [
                         {
                             role: "system",
-                            content: "Kamu adalah AI teman ngobrol yang gaul, santai, ramah, dan seru ala anak muda zaman sekarang. Jawab dengan singkat, padat, dan luwes (maksimal 2 kalimat) biar enak saat diubah jadi VN suara."
+                            content: "Kamu adalah AI teman ngobrol yang gaul, santai, ramah, dan seru ala anak muda zaman sekarang (kayak NaxaChat). Jawab dengan singkat, padat, dan luwes (maksimal 2 kalimat) biar enak saat diubah jadi VN suara."
                         },
                         { role: "user", content: userText }
                     ]
@@ -225,26 +222,23 @@
             addMessage(aiReply, 'ai');
             statusText.innerText = "AI lagi ngomong...";
 
-            // Ubah Jawaban AI jadi Suara (Speech Synthesis Bawaan Browser)
             speakText(aiReply);
 
         } catch (err) {
             alert("Error: " + err.message);
-            statusText.innerText = "Error terjadi!";
+            statusText.innerText = "Terjadi kesalahan!";
         }
     }
 
-    // Fungsi Suara VN Biar Mirip Manusia
     function speakText(text) {
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Stop suara sebelumnya
+            window.speechSynthesis.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'id-ID';
-            utterance.pitch = 1.1; // Bikin intonasi agak ceria/hidup
-            utterance.rate = 1.0;  // Kecepatan normal
+            utterance.pitch = 1.05; 
+            utterance.rate = 1.0;  
 
-            // Cari suara Bahasa Indonesia terbaik di browser pengguna
             const voices = window.speechSynthesis.getVoices();
             const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('IND'));
             if (idVoice) utterance.voice = idVoice;
@@ -255,7 +249,7 @@
 
             window.speechSynthesis.speak(utterance);
         } else {
-            statusText.innerText = "Browser kamu gak support keluaran suara!";
+            statusText.innerText = "Browser tidak mendukung suara!";
         }
     }
 </script>
