@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaxaChat AI Voice - Gratis</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .chat-card {
+            width: 100%;
+            max-width: 420px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        h2 { text-align: center; color: #58a6ff; font-size: 22px; }
+        p.sub { text-align: center; font-size: 13px; color: #8b949e; }
+        
+        .api-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        input[type="password"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            background: #0d1117;
+            color: #fff;
+            font-size: 13px;
+        }
+        .chat-box {
+            height: 250px;
+            overflow-y: auto;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 12px;
+            background: #0d1117;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .user { background: #1f6feb; align-self: flex-end; color: white; }
+        .ai { background: #21262d; align-self: flex-start; color: #e6edf3; border: 1px solid #30363d; }
+
+        .btn-mic {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-mic.recording {
+            background: #da3633;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+        .status { font-size: 12px; text-align: center; color: #8b949e; }
+    </style>
+</head>
+<body>
+
+<div class="chat-card">
+    <h2>NaxaChat Voice AI (Free)</h2>
+    <p class="sub">AI Suara Luwes Tanpa Saldo/Kredit Berbayar</p>
+
+    <div class="api-box">
+        <input type="password" id="groqKey" placeholder="Tempel Groq API Key (gsk_...)" />
+    </div>
+
+    <div class="chat-box" id="chatBox">
+        <div class="msg ai">Halo bro! Klik tombol mic di bawah terus ngomong aja, ntar tak bales pake suara!</div>
+    </div>
+
+    <div class="status" id="statusText">Status: Siap ngobrol</div>
+
+    <button class="btn-mic" id="micBtn">🎙️ Tahan / Klik Untuk Bicara</button>
+</div>
+
+<script>
+    const micBtn = document.getElementById('micBtn');
+    const statusText = document.getElementById('statusText');
+    const chatBox = document.getElementById('chatBox');
+    const groqKeyInput = document.getElementById('groqKey');
+
+    // Load key kalau tersimpan
+    groqKeyInput.value = localStorage.getItem('groq_key') || '';
+    groqKeyInput.addEventListener('change', () => {
+        localStorage.setItem('groq_key', groqKeyInput.value.trim());
+    });
+
+    let recognition;
+    let isRecording = false;
+
+    // Cek fitur Speech Recognition di browser (Web Speech API gratisan)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        alert("Browser kamu gak mendukung perekam suara bawaan. Pake Chrome HP/Laptop ya!");
+    } else {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID'; // Bahasa Indonesia
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+            isRecording = true;
+            micBtn.classList.add('recording');
+            micBtn.innerText = "🛑 Berhenti & Kirim";
+            statusText.innerText = "Lagi dengerin kamu ngomong...";
+        };
+
+        recognition.onresult = async (event) => {
+            const userSpeech = event.results[0][0].transcript;
+            addMessage(userSpeech, 'user');
+            statusText.innerText = "Lagi mikir jawabannya...";
+            
+            await processAI(userSpeech);
+        };
+
+        recognition.onerror = (event) => {
+            console.error(event.error);
+            statusText.innerText = "Gagal nangkep suara. Coba lagi!";
+            stopRecordingState();
+        };
+
+        recognition.onend = () => {
+            stopRecordingState();
+        };
+    }
+
+    micBtn.addEventListener('click', () => {
+        const apiKey = groqKeyInput.value.trim();
+        if (!apiKey) {
+            alert("Isi Groq API Key dulu bro! (Dapat gratis dari console.groq.com)");
+            return;
+        }
+
+        if (!isRecording) {
+            recognition.start();
+        } else {
+            recognition.stop();
+        }
+    });
+
+    function stopRecordingState() {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        micBtn.innerText = "🎙️ Tahan / Klik Untuk Bicara";
+    }
+
+    function addMessage(text, sender) {
+        const div = document.createElement('div');
+        div.classList.add('msg', sender);
+        div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Olah Teks ke AI Groq (Model Llama 3 - Cepat & Gaul)
+    async function processAI(userText) {
+        const apiKey = groqKeyInput.value.trim();
+
+        try {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${apiKey}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile", // Model AI super pinter & gratis
+                    messages: [
+                        {
+                            role: "system",
+                            content: "Kamu adalah AI teman ngobrol yang gaul, santai, ramah, dan seru ala anak muda zaman sekarang. Jawab dengan singkat, padat, dan luwes (maksimal 2 kalimat) biar enak saat diubah jadi VN suara."
+                        },
+                        { role: "user", content: userText }
+                    ]
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error?.message || "Gagal konek ke Groq");
+            }
+
+            const aiReply = data.choices[0].message.content;
+            addMessage(aiReply, 'ai');
+            statusText.innerText = "AI lagi ngomong...";
+
+            // Ubah Jawaban AI jadi Suara (Speech Synthesis Bawaan Browser)
+            speakText(aiReply);
+
+        } catch (err) {
+            alert("Error: " + err.message);
+            statusText.innerText = "Error terjadi!";
+        }
+    }
+
+    // Fungsi Suara VN Biar Mirip Manusia
+    function speakText(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Stop suara sebelumnya
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.pitch = 1.1; // Bikin intonasi agak ceria/hidup
+            utterance.rate = 1.0;  // Kecepatan normal
+
+            // Cari suara Bahasa Indonesia terbaik di browser pengguna
+            const voices = window.speechSynthesis.getVoices();
+            const idVoice = voices.find(v => v.lang.includes('id') || v.lang.includes('IND'));
+            if (idVoice) utterance.voice = idVoice;
+
+            utterance.onend = () => {
+                statusText.innerText = "Status: Siap ngobrol lagi";
+            };
+
+            window.speechSynthesis.speak(utterance);
+        } else {
+            statusText.innerText = "Browser kamu gak support keluaran suara!";
+        }
+    }
+</script>
+
+</body>
+</html>
